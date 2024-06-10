@@ -56,6 +56,6 @@ def Function_PLOT2DROOTHIST(hist, title, filename):
     plt.title(title,fontsize=fs)
     plt.xlabel(r'$\Delta y$',fontsize=fs,fontweight='bold')
     plt.ylabel(r'$\Delta x$',fontsize=fs,fontweight='bold')
-    plt.savefig(filename)
+    #plt.savefig(f'../plots/{filename}')
     plt.show()
     plt.close()
