@@ -8,7 +8,7 @@ def Function_EXTRACTHIST(hist):
     import ROOT as r
     import array
     import os
-    """Extract data from ROOT 2D histogram"""
+
     x_bins = hist.GetNbinsX()
     y_bins = hist.GetNbinsY()
     
@@ -34,18 +34,7 @@ def Function_PLOT2DROOTHIST(hist, title, filename):
     import ROOT as r
     import array
     import os
-    """Plot a ROOT 2D histogram using Matplotlib"""
-    colors = ['dodgerblue', '#f2be44','red']
-    colors = ['black', 'magenta', '#fc9662', 'orange']
-    colors = ['white','black','purple', 'red','#fc9662','orange','yellow']
-    colors = ['white', 'red','orange','yellow']
     colors = ['white', 'dodgerblue','mediumaquamarine','gold','yellow']
-    #colors = ['#000004', '#b63679', '#fc9662', '#fcffa4']
-    #colors = ['white', 'red','dodgerblue']
-
-#norm=PowerNorm(gamma=2.4)
-
-
     cmap = mcolors.LinearSegmentedColormap.from_list('custom_cmap', colors)
     x_edges, y_edges, data = Function_EXTRACTHIST(hist)
     
@@ -56,6 +45,6 @@ def Function_PLOT2DROOTHIST(hist, title, filename):
     plt.title(title,fontsize=fs)
     plt.xlabel(r'$\Delta y$',fontsize=fs,fontweight='bold')
     plt.ylabel(r'$\Delta x$',fontsize=fs,fontweight='bold')
-    #plt.savefig(f'../plots/{filename}')
+    plt.savefig(f'../plots/{filename}')
     plt.show()
     plt.close()
