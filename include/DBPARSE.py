@@ -91,7 +91,16 @@ def Function_RETURNBEAMPOL(runnum, time_file_path, beam_pol_file_path):
     
     raise ValueError(f"No beam polarization data found for run number {runnum} within the run duration.")
 
-    
+def Function_RETURNPROCESSEDBEAMPOL(runnum):    
+    import pandas as pd
+    data = pd.read_csv("../DB/ProcessedBeamPol.csv")
+    polarization_value = data.loc[data['Run Number'] == runnum, 'Polarization'].values[0]
+    return polarization_value
+def Function_RETURNPROCESSEDHE3POL(runnum):    
+    import pandas as pd
+    data = pd.read_csv("../DB/ProcessedHe3Pol.csv")
+    polarization_value = data.loc[data['Run Number'] == runnum, 'Polarization'].values[0]
+    return polarization_value
 
     
 
