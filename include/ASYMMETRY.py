@@ -731,7 +731,12 @@ def Function_APHYS(config,pas,rawResults,fbackground):
     Efbg=0.05*fbg
     Abg=np.sum(np.load(f'CorrectionArrays/Pass{pas}/Abg{config}.npy'))
     Ebg=np.sum(np.load(f'CorrectionArrays/Pass{pas}/AbgE{config}.npy'))
-
+    #TEMPORARY#
+    #Efacc=AE
+    #Eproton=AE
+    #Epion=AE
+    #EFSI=AE
+    #Ebg=AE
     #----------------------------------------------------------
     farray=[facc,fproton,fbg,fpion,fFSI]
     Efarray1=[Efacc,Efproton,Efbg,Efpion,EfFSI]
@@ -761,7 +766,13 @@ def Function_APHYS(config,pas,rawResults,fbackground):
     precorrection=0
     precorrectionW=0
     for i in range(0,len(newA)):
-
+        #temp
+        #Efacc=AE[i]
+        #Eproton=AE[i]
+        #Epion=AE[i]
+        #EFSI=AE[i]
+        #Ebg=AE[i]
+        #----------------
         PbE=.03*beamPol[i]/100
         PtE=.03*he3Pol[i]/100
         precorrection+=newA[i]*newYield[i]
