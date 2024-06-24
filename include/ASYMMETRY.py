@@ -406,7 +406,8 @@ def Function_FITDXSENS(config,cut,value):
     dybgmax=CONFIG.Function_JSON("dybgmax",f"../config/cuts{config}.cfg")
     coinmin=CONFIG.Function_JSON("coinmin",f"../config/cuts{config}.cfg")
     coinmax=CONFIG.Function_JSON("coinmax",f"../config/cuts{config}.cfg")
-    
+    nBins=CONFIG.Function_JSON("nBins",f"../config/cuts{config}.cfg")
+
     #____________Varying Cut__________________
     if cut=="w2":
         W2max=value[1]
@@ -520,16 +521,12 @@ def Function_FITDXSENS(config,cut,value):
     B.SetBranchAddress("fnucl", fnucl)
     
     # Assuming the variables are already defined or loaded from the ROOT file
-    if config=="3":
-        nbins = 350
+    nbins=nBins
     
     xmin, xmax = -4, 2.5
     if config=="2":
         xmin=-5.5
         xmax=2.8
-        nbins=350
-    if config=="4":
-        nbins=275
     
     hdx_total_data = TH1F("hdx_total_data", "#Deltax;#Deltax;Entries", nbins, xmin, xmax)
     hdx_total_sim = TH1F("hdx_total_sim", "#Deltax;#Deltax;Entries", 100, -6, 4)
@@ -677,7 +674,7 @@ def Function_FITDXSENS(config,cut,value):
     #c.SaveAs(f"../plots/{output}")
     return UTILITIES.Function_HIST2NP(hdx_data_plot), UTILITIES.Function_HIST2NP(hdx_bg_plot),UTILITIES.Function_HIST2NP(hdx_total_fit_plot),UTILITIES.Function_HIST2NP(hdx_sim_p_plot),UTILITIES.Function_HIST2NP(hdx_sim_n_plot)
 
-def Function_APHYS(config,pas,rawResults,fbackground):
+def Function_APHYS(config,pas,rawResults,accResult,bgResult,fP):
     runs,A,AE,Y,he3Pol,beamPol,cut,cutVal=rawResults
     import ROOT as r
     import math
@@ -701,12 +698,13 @@ def Function_APHYS(config,pas,rawResults,fbackground):
 
 
     from joblib import Parallel, delayed
-    facc=np.sum(np.load(f'CorrectionArrays/Pass{pas}/facc{config}.npy'))
+    Aacc,Eacc,facc=accResult
+    
     Efacc=.05*facc
-    Aacc=np.sum(np.load(f'CorrectionArrays/Pass{pas}/Aacc{config}.npy'))
-    Eacc=.05*Aacc
+    
+    
 
-    fproton=np.sum(np.load(f'CorrectionArrays/Pass{pas}/fproton{config}.npy'))
+    fproton=fP
     Efproton=.005*fproton
     Aproton=np.sum(np.load(f'CorrectionArrays/Pass{pas}/Aproton{config}.npy'))
     Eproton=.005*Aproton
@@ -727,16 +725,10 @@ def Function_APHYS(config,pas,rawResults,fbackground):
     Pneutron=.85
     Eneutron=.005*Pneutron
 
+    Abg,Ebg,fbackground=bgResult
     fbg=fbackground-fpion-facc-fFSI-fnitro
     Efbg=0.05*fbg
-    Abg=np.sum(np.load(f'CorrectionArrays/Pass{pas}/Abg{config}.npy'))
-    Ebg=np.sum(np.load(f'CorrectionArrays/Pass{pas}/AbgE{config}.npy'))
-    #TEMPORARY#
-    #Efacc=AE
-    #Eproton=AE
-    #Epion=AE
-    #EFSI=AE
-    #Ebg=AE
+
     #----------------------------------------------------------
     farray=[facc,fproton,fbg,fpion,fFSI]
     Efarray1=[Efacc,Efproton,Efbg,Efpion,EfFSI]
