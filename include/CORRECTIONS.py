@@ -153,7 +153,7 @@ def Function_ANALYZEROOTFILE(config,hbg,hproton,htotal):
     fproton=np.round(numProton/numTotal,4)
     fbg=np.round(numBG/numTotal,4)
     
-    return [Aacc,AEacc,facc],[Abg,AEbg,fbg],fp
+    return [Aacc,AEacc,facc],[Abg,AEbg,fbg],fproton
 
 
 
@@ -161,6 +161,7 @@ def Function_ANALYZEROOTFILE(config,hbg,hproton,htotal):
 def Function_ACCIDENTAL(config,hcoin,hcoinp,hcoinm,coinmin,coinmax):
     import UTILITIES
     import numpy as np
+    import math
     p=0
     m=0
     bgextra=50
@@ -209,6 +210,7 @@ def Function_ACCIDENTAL(config,hcoin,hcoinp,hcoinm,coinmin,coinmax):
 def Function_INELASTIC(config,hbg,hbgp,hbgm):
     import numpy as np
     import UTILITIES
+    import math
     bgtot=UTILITIES.Function_HIST2NP(hbg)
     bgplus=UTILITIES.Function_HIST2NP(hbgp)
     bgmin=UTILITIES.Function_HIST2NP(hbgm)
