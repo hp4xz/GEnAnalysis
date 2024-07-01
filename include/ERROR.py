@@ -17,20 +17,19 @@ def Function_WEIGHTEDAVERAGEAPHYS(A, C, f, n, P_b, P_n, P_t, sigma_A, sigma_C, s
     import numpy as np
     #A is asymmetry, C is sum(f*A), f is fraction
     #n is nitrogen fraction, Pb Pn Pt are beam, neutron, target polarizations
-    W = (A - C) / ((1 - f) * (1 - n) * P_b * P_n * P_t)
+     
+    W = (A - C) / ((1 - f) * P_b * P_n * P_t)
     
-    partial_A = 1 / ((1 - f) * (1 - n) * P_b * P_n * P_t)
-    partial_C = -1 / ((1 - f) * (1 - n) * P_b * P_n * P_t)
-    partial_f = (A - C) / (((1 - f)**2) * (1 - n) * P_b * P_n * P_t)
-    partial_n = (A - C) / ((1 - f) * ((1 - n)**2) * P_b * P_n * P_t)
-    partial_P_b = (A - C) / ((1 - f) * (1 - n) * (P_b**2) * P_n * P_t)
-    partial_P_n = (A - C) / ((1 - f) * (1 - n) * P_b * (P_n**2) * P_t)
-    partial_P_t = (A - C) / ((1 - f) * (1 - n) * P_b * P_n * (P_t**2))
+    partial_A = 1 / ((1 - f)  * P_b * P_n * P_t)
+    partial_C = -1 / ((1 - f)  * P_b * P_n * P_t)
+    partial_f = (A - C) / (((1 - f)**2)  * P_b * P_n * P_t)
+    partial_P_b = (A - C) / ((1 - f)  * (P_b**2) * P_n * P_t)
+    partial_P_n = (A - C) / ((1 - f)  * P_b * (P_n**2) * P_t)
+    partial_P_t = (A - C) / ((1 - f)  * P_b * P_n * (P_t**2))
     
     sigma_W = np.sqrt((partial_A * sigma_A)**2 + 
                       (partial_C * sigma_C)**2 + 
                       (partial_f * sigma_f)**2 + 
-                      (partial_n * sigma_n)**2 + 
                       (partial_P_b * sigma_P_b)**2 + 
                       (partial_P_n * sigma_P_n)**2 + 
                       (partial_P_t * sigma_P_t)**2)

@@ -143,15 +143,12 @@ def Function_ASYMMETRYSENS(config,cut,value):
                 else:
                     continue
                 #____________CUTS_______________________________      
-                #ycut = dymin < dy_np[0] < dymax
-                #bgycut=dybgmin<dy_np[0]<dybgmax
-                #coin_cut = coinmin < coin_np[0] < coinmax
-                #W2cut=W2min < W2_np[0] < W2max
-                #xcutn = dxmin < dx_np[0] < dxmax
+                ycut = dymin < dy_np[0] < dymax
+
+                xcutn = dxmin < dx_np[0] < dxmax
                 
                 coin_cut = coinmin < coin_np[0] < coinmax
-                ycut=abs(dy_np[0])<dymax
-                xcutn=abs(dx_np[0])<dxmax
+
                 W2cut=W2min<W2_np[0]<W2max
                 #________________________________________________ 
                 
@@ -325,15 +322,15 @@ def Function_ASYMMETRY(config):
                 else:
                     continue
                 #____________CUTS_______________________________      
-                #ycut = dymin < dy_np[0] < dymax
+                ycut = dymin < dy_np[0] < dymax
                 #bgycut=dybgmin<dy_np[0]<dybgmax
                 #coin_cut = coinmin < coin_np[0] < coinmax
                 #W2cut=W2min < W2_np[0] < W2max
-                #xcutn = dxmin < dx_np[0] < dxmax
+                xcutn = dxmin < dx_np[0] < dxmax
                 
                 coin_cut = coinmin < coin_np[0] < coinmax
-                ycut=abs(dy_np[0])<dymax
-                xcutn=abs(dx_np[0])<dxmax
+                #ycut=abs(dy_np[0])<dymax
+                #xcutn=abs(dx_np[0])<dxmax
                 W2cut=W2min<W2_np[0]<W2max
                 #________________________________________________ 
                 
@@ -674,7 +671,7 @@ def Function_FITDXSENS(config,cut,value):
     #c.SaveAs(f"../plots/{output}")
     return UTILITIES.Function_HIST2NP(hdx_data_plot), UTILITIES.Function_HIST2NP(hdx_bg_plot),UTILITIES.Function_HIST2NP(hdx_total_fit_plot),UTILITIES.Function_HIST2NP(hdx_sim_p_plot),UTILITIES.Function_HIST2NP(hdx_sim_n_plot)
 
-def Function_APHYS(config,pas,rawResults,accResult,bgResult,fP):
+def Function_APHYS(config,pas,rawResults,accResult,bgResult,protonResult):
     runs,A,AE,Y,he3Pol,beamPol,cut,cutVal=rawResults
     import ROOT as r
     import math
@@ -698,39 +695,43 @@ def Function_APHYS(config,pas,rawResults,accResult,bgResult,fP):
 
 
     from joblib import Parallel, delayed
-    Aacc,Eacc,facc=accResult
-    
-    Efacc=.05*facc
+    Aacc,Eacc,facc,Efacc=accResult
+    fP,fPE=protonResult
     
     
 
     fproton=fP
-    Efproton=.005*fproton
+    Efproton=fPE
     Aproton=np.sum(np.load(f'CorrectionArrays/Pass{pas}/Aproton{config}.npy'))
     Eproton=.005*Aproton
-
-    fpion=0
-    Efpion=.005*fpion
+    
+    if config=="2":
+        fpion=0
+    else:
+        fpion=0.01
+    Efpion=.0005*fpion
     Apion=0
-    Epion=.005*Apion
+    Epion=.0005*Apion
 
     fFSI=0
-    EfFSI=.005*fFSI
+    EfFSI=.0005*fFSI
     AFSI=0
-    EFSI=.005*AFSI
+    EFSI=.0005*AFSI
 
-    fnitro=.05
-    Efnitro=.005*fnitro
+    fnitro=.0157
+    Efnitro=.0005*fnitro
 
-    Pneutron=.85
-    Eneutron=.005*Pneutron
+    Pneutron=.95
+    Eneutron=.0005*Pneutron
 
-    Abg,Ebg,fbackground=bgResult
+    Abg,Ebg,fbackground,Efbackground=bgResult
     fbg=fbackground-fpion-facc-fFSI-fnitro
-    Efbg=0.05*fbg
-
+    Efbg=np.sqrt(Efbackground**2+Efpion**2+Efacc**2+Efnitro**2)
+    
+    
     #----------------------------------------------------------
     farray=[facc,fproton,fbg,fpion,fFSI]
+    
     Efarray1=[Efacc,Efproton,Efbg,Efpion,EfFSI]
     Efarray2=[Efacc,Efproton,Efbg,Efpion,EfFSI,Efnitro]
 
@@ -738,17 +739,19 @@ def Function_APHYS(config,pas,rawResults,accResult,bgResult,fP):
     AEarray=[Eacc,Eproton,Ebg,Epion,EFSI]
 
     fAE=ERROR.Function_f_A_ERROR(farray,Efarray1,Aarray,AEarray)
+  
     fE=ERROR.Function_f_ERROR(Efarray2)
+    
+
     #----------------------------------------------------------
     fA= facc*Aacc + fproton*Aproton + fbg*Abg + fpion*Apion + fFSI*AFSI
 
-    f=facc + fproton + fbg + fpion + fFSI 
-
-    
-    
+    f=facc + fproton + fbg + fpion + fFSI +fnitro
+    print(f'fA Error:{fA}+-{fAE}')
+    print(f'f Error:{f}+-{fE}')
     newA=np.array(A)
     newYield=np.array(Y)
-
+    newAE=np.array(AE)
     weightedSum=0
     sumWeights=0
 
@@ -767,17 +770,20 @@ def Function_APHYS(config,pas,rawResults,accResult,bgResult,fP):
         #----------------
         PbE=.03*beamPol[i]/100
         PtE=.03*he3Pol[i]/100
-        precorrection+=newA[i]*newYield[i]
-        precorrectionW+=newYield[i]
+        rawE=newAE[i]/(he3Pol[i]*beamPol[i]*Pneutron*(1-f)/10000)
+        precorrection+=newA[i]/(rawE**2)
+        precorrectionW+=1/(rawE**2)
+    
         calculate=ERROR.Function_WEIGHTEDAVERAGEAPHYS(newA[i],fA,f,fnitro,beamPol[i]/100,Pneutron,he3Pol[i]/100,AE[i],fAE,fE,Efnitro,PbE,Eneutron,PtE)
         w=calculate[0]
         w_sig= calculate[1] 
         weightedSum+=(w/(w_sig**2))
-        sumWeights+=1/(w_sig**2)
+        sumWeights+=(1/(w_sig**2))
 
 
 
-
+    rawAsymmetry=precorrection/precorrectionW
+    rawAsymmetryE=math.sqrt(1/precorrectionW)
     weighted_A=weightedSum/sumWeights
     weighted_A_E=math.sqrt(1/sumWeights)
-    return weighted_A,weighted_A_E,fbg
+    return weighted_A,weighted_A_E,fbg, rawAsymmetry,rawAsymmetryE

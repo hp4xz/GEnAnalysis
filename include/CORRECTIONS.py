@@ -91,17 +91,20 @@ def Function_ANALYZEROOTFILE(config,hbg,hproton,htotal):
     
     hcoin = TH1F("hcoin","Coincidence Time ;Time (ns);Entries", nbins, xmin, xmax)
     hcoin_minus = TH1F("hcoin_minus","Coincidence Time -;Time (ns);Entries", nbins, xmin, xmax)
-    hcoin_plus = TH1F("hcoin_pluys","Coincidence Time + ;Time (ns);Entries", nbins, xmin, xmax)
-
-    hbgtot = TH1F("hbgtot","Background ;dx;Entries", nbins, xmin, xmax)
-    hbg_plus = TH1F("hbg_plus","Background -;Time (ns);Entries", nbins, xmin, xmax)
-    hbg_minus = TH1F("hbg_minus","Background + ;dx;Entries", nbins, xmin, xmax)
+    hcoin_plus = TH1F("hcoin_plus","Coincidence Time + ;Time (ns);Entries", nbins, xmin, xmax)
+    xmin, xmax = -4, 2.5
+    if config=="2":
+        xmin=-5.5
+        xmax=2.8   
+    hbgtot = TH1F("hbgtot","Background ;dx;Entries", 100, xmin, xmax)
+    hbg_plus = TH1F("hbg_plus","Background -;Time (ns);Entries", 100, xmin, xmax)
+    hbg_minus = TH1F("hbg_minus","Background + ;dx;Entries", 100, xmin, xmax)
 
     nEntries_np = C.GetEntries()
   
     
 
-
+    imgoingcrazy=0
     
     for i in range(nEntries_np):
         C.GetEntry(i)
@@ -126,6 +129,7 @@ def Function_ANALYZEROOTFILE(config,hbg,hproton,htotal):
             
             if helicity_np[0] == 1:
                 hcoin_plus.Fill(coin_np[0])
+                imgoingcrazy+=1
             if helicity_np[0] == -1:
                 hcoin_minus.Fill(coin_np[0])
         if coin_cut and not W2cut and xcutn and not bgycut and runnum_np[0] > 2165:
@@ -135,7 +139,13 @@ def Function_ANALYZEROOTFILE(config,hbg,hproton,htotal):
             if helicity_np[0] == -1:
                 hbg_minus.Fill(dx_np[0])
                 
-    Aacc,AEacc,facc=Function_ACCIDENTAL(config,hcoin,hcoin_plus,hcoin_minus,coinmin,coinmax)
+    
+    
+    #print(f"FROM THE SOURCE: {imgoingcrazy}")
+    
+    Aacc,AEacc,facc,faccE=Function_ACCIDENTAL(config,hcoin,hcoin_plus,hcoin_minus,coinmin,coinmax)
+    
+    
     Abg,AEbg=Function_INELASTIC(config,hbgtot,hbg_plus,hbg_minus)
     
     lower_bound = dxmin
@@ -153,9 +163,21 @@ def Function_ANALYZEROOTFILE(config,hbg,hproton,htotal):
     fproton=np.round(numProton/numTotal,4)
     fbg=np.round(numBG/numTotal,4)
     
-    return [Aacc,AEacc,facc],[Abg,AEbg,fbg],fproton
+    fprotonE=calculate_division_error(numProton,numTotal,np.sqrt(numProton),np.sqrt(numTotal))[1]
+    fbgE=calculate_division_error(numBG,numTotal,np.sqrt(numBG),np.sqrt(numTotal))[1]
+    
+    return [Aacc,AEacc,facc,faccE],[Abg,AEbg,fbg,fbgE],[fproton,fprotonE]
 
-
+def calculate_division_error(A, B, sigma_A, sigma_B):
+    import numpy as np
+    relative_error_A = sigma_A / A
+    relative_error_B = sigma_B / B
+    relative_error_C = (relative_error_A ** 2 + relative_error_B ** 2) ** 0.5
+    
+    C = A / B
+    sigma_C = C * relative_error_C
+    
+    return C, sigma_C
 
 
 def Function_ACCIDENTAL(config,hcoin,hcoinp,hcoinm,coinmin,coinmax):
@@ -164,48 +186,52 @@ def Function_ACCIDENTAL(config,hcoin,hcoinp,hcoinm,coinmin,coinmax):
     import math
     p=0
     m=0
-    bgextra=50
+    bgextra=30
     cointot=UTILITIES.Function_HIST2NP(hcoin)
     coinplus=UTILITIES.Function_HIST2NP(hcoinp)
     coinminus=UTILITIES.Function_HIST2NP(hcoinm)
     
     bin_centers,bin_contents=coinplus
-
+    coinplusCounts=np.sum(bin_contents)
     count_ranges=[(0, coinmin), (coinmax, 200)]
 
-    total_counts = 0
+    total_countsP = 0
 
     # Sum the bin contents within the specified ranges
     for count_range_min, count_range_max in count_ranges:
         count_mask = (bin_centers >= count_range_min) & (bin_centers <= count_range_max)
         count_bin_contents = bin_contents[count_mask]
-        total_counts += np.sum(count_bin_contents)
+        total_countsP += np.sum(count_bin_contents)
 
-    p=total_counts
-    bin_centers,bin_contents=coinminus
-
+    p=total_countsP
+    bin_centersM,bin_contentsM=coinminus
+    coinminusCounts=np.sum(bin_contentsM)
     count_ranges=[(0, coinmin), (coinmax, 200)]
 
-    total_counts = 0
+    total_countsM = 0
 
     # Sum the bin contents within the specified ranges
     for count_range_min, count_range_max in count_ranges:
-        count_mask = (bin_centers >= count_range_min) & (bin_centers <= count_range_max)
-        count_bin_contents = bin_contents[count_mask]
-        total_counts += np.sum(count_bin_contents)
+        count_maskM = (bin_centersM >= count_range_min) & (bin_centersM <= count_range_max)
+        count_bin_contentsM = bin_contentsM[count_maskM]
+        total_countsM += np.sum(count_bin_contentsM)
 
-    m=total_counts
+    m=total_countsM
     
     bin_centers,bin_contents=cointot
     
     background_events=np.sum(bin_contents[(bin_centers >= coinmin+bgextra) & (bin_centers <= coinmax+bgextra)])
     total_events=np.sum(bin_contents[(bin_centers >= coinmin) & (bin_centers <= coinmax)])
     ratio = np.round(background_events / total_events,4)
+    
+    faccE=calculate_division_error(background_events,total_events,np.sqrt(background_events),np.sqrt(total_events))[1]
 
     
     A=(p-m)/(p+m)
     AE=2*math.sqrt(p * m) / (p + m)**(3/2)
-    return A,AE,ratio
+
+    
+    return A,AE,ratio,faccE
 
 def Function_INELASTIC(config,hbg,hbgp,hbgm):
     import numpy as np
@@ -225,4 +251,5 @@ def Function_INELASTIC(config,hbg,hbgp,hbgm):
     
     A=(p-m)/(p+m)
     AE=2*math.sqrt(p * m)/(p + m)**(3/2)
+    #print(f"Inside Function_ACCIDENTALS: A={A} -- P: {p} M: {m}")
     return A,AE
