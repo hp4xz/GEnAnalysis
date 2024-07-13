@@ -35,3 +35,32 @@ def Function_WEIGHTEDAVERAGEAPHYS(A, C, f, n, P_b, P_n, P_t, sigma_A, sigma_C, s
                       (partial_P_t * sigma_P_t)**2)
     
     return W, sigma_W
+
+def Function_STATERROR(Araw,fN,Pb,Pt,PN,ArawSig,fNSig,PbSig,PtSig,PNSig):
+    import numpy as np
+    S=Araw/(fN*Pb*Pt*PN)
+    partial_Araw=1/(fN*Pb*Pt*PN)
+    partial_fN=-Araw/(fN**2*Pb*Pt*PN)
+    partial_Pb=-Araw/(fN*Pb**2*Pt*PN)
+    partial_Pt=-Araw/(fN*Pt**2*Pb*PN)
+    partial_PN=-Araw/(fN*PN**2*Pt*Pb)
+    S_sig=np.sqrt((partial_Araw*ArawSig)**2+
+                 (partial_fN*fNSig)**2+
+                  (partial_Pb*PbSig)**2+
+                  (partial_Pt*PtSig)**2+
+                  (partial_PN*PNSig)**2)
+    return S_sig
+def Function_SYSERROR(fA,fN,Pb,Pt,PN,fASig,fNSig,PbSig,PtSig,PNSig):
+    import numpy as np
+    S=fA/(fN*Pb*Pt*PN)
+    partial_fA=1/(fN*Pb*Pt*PN)
+    partial_fN=-fA/(fN**2*Pb*Pt*PN)
+    partial_Pb=-fA/(fN*Pb**2*Pt*PN)
+    partial_Pt=-fA/(fN*Pt**2*Pb*PN)
+    partial_PN=-fA/(fN*PN**2*Pt*Pb)
+    S_sig=np.sqrt((partial_fA*fASig)**2+
+                 (partial_fN*fNSig)**2+
+                  (partial_Pb*PbSig)**2+
+                  (partial_Pt*PtSig)**2+
+                  (partial_PN*PNSig)**2)
+    return S_sig

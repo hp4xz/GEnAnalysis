@@ -166,7 +166,7 @@ def Function_ASYMMETRYSENS(config,cut,value):
         
             else:
                 analyze = True
-                if nplus_np<1:
+                if nplus_np<1 or nminus_np<1:
                     analyze = False
                 if analyze:
                     n_Asym = (nplus_np - nminus_np) * 1.0 / (nplus_np + nminus_np)
@@ -348,7 +348,7 @@ def Function_ASYMMETRY(config):
         
             else:
                 analyze = True
-                if nplus_np<1:
+                if nplus_np<1 or nminus_np<1:
                     analyze = False
                 if analyze:
                     n_Asym = (nplus_np - nminus_np) * 1.0 / (nplus_np + nminus_np)
@@ -606,7 +606,7 @@ def Function_FITDXSENS(config,cut,value):
     # Fit distributions
     cfg = f"GEN{config}"
     print(cfg)
-    dists = DistributionFits(bg_shape_option="pol4" if cfg == "GEN2" or cfg== "GEN3" else "from data")
+    dists = DistributionFits(bg_shape_option="pol4" if cfg == "GEN2" else "from data")
     dists.hdx_data = (np.array([hdx_total_data.GetBinCenter(i) for i in range(1, hdx_total_data.GetNbinsX() + 1)]), 
                       np.array([hdx_total_data.GetBinContent(i) for i in range(1, hdx_total_data.GetNbinsX() + 1)]))
     dists.hdx_sim_p = (np.array([hdx_sim_p.GetBinCenter(i) for i in range(1, hdx_sim_p.GetNbinsX() + 1)]), 
@@ -747,6 +747,8 @@ def Function_APHYS(config,pas,rawResults,accResult,bgResult,protonResult):
     fA= facc*Aacc + fproton*Aproton + fbg*Abg + fpion*Apion + fFSI*AFSI
 
     f=facc + fproton + fbg + fpion + fFSI +fnitro
+    fN=1-f
+    
     print(f'fA Error:{fA}+-{fAE}')
     print(f'f Error:{f}+-{fE}')
     newA=np.array(A)
@@ -754,7 +756,8 @@ def Function_APHYS(config,pas,rawResults,accResult,bgResult,protonResult):
     newAE=np.array(AE)
     weightedSum=0
     sumWeights=0
-
+    sumSys=0
+    sumErrors=0
 
     polsum=np.empty(0)
 
@@ -771,19 +774,26 @@ def Function_APHYS(config,pas,rawResults,accResult,bgResult,protonResult):
         PbE=.03*beamPol[i]/100
         PtE=.03*he3Pol[i]/100
         rawE=newAE[i]/(he3Pol[i]*beamPol[i]*Pneutron*(1-f)/10000)
-        precorrection+=newA[i]/(rawE**2)
-        precorrectionW+=1/(rawE**2)
+        precorrection+=newA[i]/(AE[i]**2)
+        precorrectionW+=1/(AE[i]**2)
     
         calculate=ERROR.Function_WEIGHTEDAVERAGEAPHYS(newA[i],fA,f,fnitro,beamPol[i]/100,Pneutron,he3Pol[i]/100,AE[i],fAE,fE,Efnitro,PbE,Eneutron,PtE)
+        sysError=ERROR.Function_SYSERROR(fA,fN,beamPol[i]/100,he3Pol[i]/100,Pneutron,fAE,fE,PbE,PtE,Eneutron)
+        statError=ERROR.Function_STATERROR(newA[i],fN,beamPol[i]/100,he3Pol[i]/100,Pneutron,AE[i],fE,PbE,PtE,Eneutron)
+        #totError=np.sqrt(sysError**2+statError**2)
         w=calculate[0]
         w_sig= calculate[1] 
-        weightedSum+=(w/(w_sig**2))
-        sumWeights+=(1/(w_sig**2))
-
-
+        weightedSum+=(w/(statError**2))
+        sumWeights+=(1/(statError**2))
+        sumSys+=(1/sysError**2)
+        
+    totalSys=1/math.sqrt(sumSys)
+    totalStat=1/math.sqrt(sumWeights)
+    
+    totError=totalSys+totalStat
 
     rawAsymmetry=precorrection/precorrectionW
     rawAsymmetryE=math.sqrt(1/precorrectionW)
     weighted_A=weightedSum/sumWeights
-    weighted_A_E=math.sqrt(1/sumWeights)
-    return weighted_A,weighted_A_E,fbg, rawAsymmetry,rawAsymmetryE
+    weighted_A_E=totError
+    return weighted_A,weighted_A_E,fbg, rawAsymmetry,rawAsymmetryE,totalSys,totalStat

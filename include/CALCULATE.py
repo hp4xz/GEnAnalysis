@@ -1,7 +1,9 @@
 
 def Function_CALCGEN(config,A,AE):
     from math import pi
+    import numpy as np
     #in GeV^2
+    
     m=.939565
     muN=-1.9103
     if config=="2":
@@ -17,11 +19,30 @@ def Function_CALCGEN(config,A,AE):
         Q2=9.82
         tau=Q2/(4*m**2)
         theta=35*pi/180
-       
-    R,RE=Rcalc(tau,theta,A,AE)
+    a=A
+    b=2*(np.sqrt(tau*(tau+1))*np.tan(theta/2))
+    c=A*(tau+2*tau*(1+tau)*np.tan(theta/2)**2)
+    aE=AE
+    cE=AE*(tau+2*tau*(1+tau)*np.tan(theta/2)**2)
+    
+    R,RE=Rcalc(a, b, c, aE, cE)
     return R,RE
 
-
+def Rcalc(a, b, c, aE, cE):
+    import numpy as np
+    R = (-b + np.sqrt(b**2 - 4 * a * c)) / (2 * a)
+    
+    # Calculate the partial derivatives
+    p1=(-b**2)/np.sqrt(b**2-4*a*c)
+    p2=(2*a*c)/np.sqrt(b**2-4*a*c)
+    p3=b
+    partial_a = (p1+p2+p3)/(2*a**2)
+    partial_c = -1 / (np.sqrt(b**2 - 4 * a * c))
+    
+    # Calculate the propagated error
+    RE = np.sqrt((partial_a * aE)**2 + (partial_c * cE)**2)
+    
+    return R,RE
 
 def Function_GENWORLDFROMQ2(Q2):
     import pandas as pd
@@ -29,7 +50,7 @@ def Function_GENWORLDFROMQ2(Q2):
     row=main(Q2)
     R=np.round(row[1]/row[4],4)
     return R
-def Rcalc(tau, theta, A, AE):
+def RcalcINCORRECT(tau, theta, A, AE):
     import numpy as np
     import pandas as pd
     n1 = -np.sqrt(tau * (tau + 1)) * np.tan(theta / 2)
@@ -43,6 +64,8 @@ def Rcalc(tau, theta, A, AE):
     
     sigma_R_plus = R_plus * np.sqrt((sigma_n2 / (n1 + n2))**2 + (AE / A)**2)
     sigma_R_minus = R_minus * np.sqrt((sigma_n2 / (n1 - n2))**2 + (AE / A)**2)
+
+       
     
     return R_plus, sigma_R_plus
 
