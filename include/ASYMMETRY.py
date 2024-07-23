@@ -1,4 +1,4 @@
-def Function_ASYMMETRYSENS(config,cut,value):
+def Function_ASYMMETRYSENS(config,cut,value,cutstyle=0):
     #imports
     import ROOT as r
     import math
@@ -129,8 +129,10 @@ def Function_ASYMMETRYSENS(config,cut,value):
     analyze=True
     # Loop over the entries
     
-    
-
+    rxn3 = (dxmax - dxmin) / 2.0
+    ryn3 = (dymax - dymin) / 2.0
+    x0_n3 = (dxmax + dxmin) / 2.0
+    y0_3 = (dymax + dymin) / 2.0
     for i in range(nEntries_np):
         C.GetEntry(i)
         if runnum_np[0] > 2165 and runnum_np[0]<4470:
@@ -142,7 +144,8 @@ def Function_ASYMMETRYSENS(config,cut,value):
                     helicity_np[0] *= -1
                 else:
                     continue
-                #____________CUTS_______________________________      
+                #____________CUTS_______________________________   
+                ncut = (dx_np[0] - x0_n3)**2 / rxn3**2 + (dy_np[0] - y0_3)**2 / ryn3**2 <= 1
                 ycut = dymin < dy_np[0] < dymax
 
                 xcutn = dxmin < dx_np[0] < dxmax
@@ -153,16 +156,24 @@ def Function_ASYMMETRYSENS(config,cut,value):
                 #________________________________________________ 
                 
                
+                if cutstyle==0:
                 
-                
-                if coin_cut and W2cut and runnum_np[0] > 2165 and ycut and xcutn:
-                    QE += 1
+                    if coin_cut and W2cut and runnum_np[0] > 2165 and ycut and xcutn:
+                        QE += 1
 
-                    if helicity_np[0] == 1:
-                        nplus_np += 1
-                    if helicity_np[0] == -1:
-                        nminus_np += 1
-          
+                        if helicity_np[0] == 1:
+                            nplus_np += 1
+                        if helicity_np[0] == -1:
+                            nminus_np += 1
+                if cutstyle==1:
+                
+                    if coin_cut and W2cut and runnum_np[0] > 2165 and ncut:
+                        QE += 1
+
+                        if helicity_np[0] == 1:
+                            nplus_np += 1
+                        if helicity_np[0] == -1:
+                            nminus_np += 1
         
             else:
                 analyze = True
@@ -671,6 +682,263 @@ def Function_FITDXSENS(config,cut,value):
     #c.SaveAs(f"../plots/{output}")
     return UTILITIES.Function_HIST2NP(hdx_data_plot), UTILITIES.Function_HIST2NP(hdx_bg_plot),UTILITIES.Function_HIST2NP(hdx_total_fit_plot),UTILITIES.Function_HIST2NP(hdx_sim_p_plot),UTILITIES.Function_HIST2NP(hdx_sim_n_plot)
 
+
+def Function_FITDXSENS2D((config,cut,value):
+    import ROOT as r
+    import math
+    import array
+    import os
+    import sys
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    #______________Add include directory_______________
+    current_dir = os.getcwd()
+    include_dir = os.path.join(current_dir, '../include')
+    sys.path.insert(0, include_dir)
+    #__________________________________________________
+
+    import CONFIG
+    import DBPARSE
+    import UTILITIES
+    from SIMFITS import DistributionFits
+    from ROOT import gStyle, TChain, TH1F, TCanvas, TLegend
+    W2min=CONFIG.Function_JSON("W2min",f"../config/cuts{config}.cfg")
+    W2max=CONFIG.Function_JSON("W2max",f"../config/cuts{config}.cfg")
+    dxmin=CONFIG.Function_JSON("dxmin",f"../config/cuts{config}.cfg")
+    dxmax=CONFIG.Function_JSON("dxmax",f"../config/cuts{config}.cfg")
+    dymin=CONFIG.Function_JSON("dymin",f"../config/cuts{config}.cfg")
+    dymax=CONFIG.Function_JSON("dymax",f"../config/cuts{config}.cfg")
+    dybgmin=CONFIG.Function_JSON("dybgmin",f"../config/cuts{config}.cfg")
+    dybgmax=CONFIG.Function_JSON("dybgmax",f"../config/cuts{config}.cfg")
+    coinmin=CONFIG.Function_JSON("coinmin",f"../config/cuts{config}.cfg")
+    coinmax=CONFIG.Function_JSON("coinmax",f"../config/cuts{config}.cfg")
+    nBins=CONFIG.Function_JSON("nBins",f"../config/cuts{config}.cfg")
+    r.gErrorIgnoreLevel = r.kError  # Suppress Info and Warning messages
+    gStyle.SetOptStat(0)
+    gStyle.SetOptFit(1)
+
+    #_____bring in config values______#
+    coinVector = CONFIG.Function_JSON("GEN" + config, "../config/coin.cfg")
+    he3spot = CONFIG.Function_JSON("GEN" + config + "He3", "../config/spotsize.cfg")
+    he3spotsim = CONFIG.Function_JSON("GEN" + config + "He3sim", "../config/spotsize.cfg")
+    
+    # Set coincidence cut and spot cut values
+    coinSigma = 2.5
+    coin_low = coinVector[0] - coinSigma * coinVector[1]
+    coin_high = coinVector[0] + coinSigma * coinVector[1]
+
+    # Spot imports for dx, dy high and low
+    hiydata = he3spot[1]
+    lowydata = he3spot[0]
+    
+    hixdatan = he3spotsim[7]
+    lowxdatan = he3spotsim[6]
+    hixdatap = he3spotsim[5]
+    lowxdatap = he3spotsim[4]
+    
+    hix_n_3 = he3spotsim[7]
+    lowx_n_3 = he3spotsim[6]
+    hix_p_3 = he3spotsim[5]
+    lowx_p_3 = he3spotsim[4]
+    hiy_p3 = he3spotsim[1]
+    lowy_p3 = he3spotsim[0]
+    hiy_n3 = he3spotsim[3]
+    lowy_n3 = he3spotsim[2]
+    
+    rxn3 = (hix_n_3 - lowx_n_3) / 2.0
+    rxp3 = (hix_p_3 - lowx_p_3) / 2.0
+    ryp3 = (hiy_p3 - lowy_p3) / 2.0
+    ryn3 = (hiy_n3 - lowy_n3) / 2.0
+
+    x0_n3 = (hix_n_3 + lowx_n_3) / 2.0
+    x0_p3 = (hix_p_3 + lowx_p_3) / 2.0
+    y0_3 = (hiy_p3 + lowy_p3) / 2.0
+    
+    #-------------------------------------
+    rootfilenp = f"../outfiles/Pass1/QE_data_GEN{config}_sbs100p_nucleon_np_model2.root"
+    rootfilep = f"../outfiles/Pass1/QE_sim_GEN{config}_sbs100p_nucleon_np_model2.root"
+    
+    C = TChain("Tout")
+    B = TChain("Tout")
+    
+    C.Add(rootfilenp)
+    B.Add(rootfilep)
+
+    dx_p, dy_p, W2_p, coin_p, fnucl = array.array('d', [0]), array.array('d', [0]), array.array('d', [0]), array.array('d', [0]), array.array('d', [0])
+    dx_np, dy_np, W2_np, coin_np, weight = array.array('d', [0]), array.array('d', [0]), array.array('d', [0]), array.array('d', [0]), array.array('d', [0])
+    helicity_p, IHWP_p, runnum_p = array.array('i', [0]), array.array('i', [0]), array.array('i', [0])
+    helicity_np, IHWP_np, runnum_np = array.array('i', [0]), array.array('i', [0]), array.array('i', [0])
+    
+    # Disable all branches initially
+    C.SetBranchStatus("*", 0)
+    B.SetBranchStatus("*", 0)
+
+    # Enable specific branches
+    branches = ["dx", "dy", "W2", "helicity", "IHWP", "runnum", "coinCut", "coin_time"]
+    b2 = ["dx", "dy", "W2"]
+    for branch in branches:
+        C.SetBranchStatus(branch, 1)
+    for branch in b2:
+        B.SetBranchStatus(branch, 1)
+
+    B.SetBranchStatus("weight", 1)
+    B.SetBranchStatus("fnucl", 1)
+
+    # Set branch addresses
+    C.SetBranchAddress("dx", dx_np)
+    B.SetBranchAddress("dx", dx_p)
+    C.SetBranchAddress("dy", dy_np)
+    B.SetBranchAddress("dy", dy_p)
+    C.SetBranchAddress("W2", W2_np)
+    B.SetBranchAddress("W2", W2_p)
+    C.SetBranchAddress("helicity", helicity_np)
+    C.SetBranchAddress("IHWP", IHWP_np)
+    C.SetBranchAddress("coin_time", coin_np)
+    C.SetBranchAddress("runnum", runnum_np)
+    B.SetBranchAddress("weight", weight)
+    B.SetBranchAddress("fnucl", fnucl)
+    
+    # Assuming the variables are already defined or loaded from the ROOT file
+    nbins = 100   
+    xmin, xmax = -4,2.5
+    ymin, ymax = -1.5,1.5  # Add appropriate ymin and ymax
+
+    if config == "2":
+        xmin = -5.5
+        xmax = 2.8
+    
+    hdx_total_data = r.TH2F("hdx_total_data", "#Deltax;#Deltax;Entries", nbins, xmin, xmax, nbins, ymin, ymax)
+    hdx_total_sim = r.TH2F("hdx_total_sim", "#Deltax;#Deltax;Entries", nbins, xmin, xmax, nbins, ymin, ymax)
+    hdx_sim_p = r.TH2F("hdx_sim_p", "#Deltax for helicity +1;#Deltax;Entries", nbins, xmin, xmax, nbins, ymin, ymax)
+    hdx_sim_n = r.TH2F("hdx_sim_n", "#Deltax for helicity -1;#Deltax;Entries", nbins, xmin, xmax, nbins, ymin, ymax)
+    hdx_data_plus = r.TH1F("hdx_data_plus", "", nbins, xmin, xmax)
+    hdx_data_minus = r.TH1F("hdx_data_minus", "", nbins, xmin, xmax)
+    hdx_bg_data = r.TH2F("hdx_bg_data", "", nbins, xmin, xmax, nbins, ymin, ymax)
+    hdx_bg_data_plus = r.TH2F("hdx_bg_data_plus", "", nbins, xmin, xmax, nbins, ymin, ymax)
+    hdx_bg_data_minus = r.TH2F("hdx_bg_data_minus", "", nbins, xmin, xmax, nbins, ymin, ymax)
+    
+    nEntries_np = C.GetEntries()
+    for i in range(nEntries_np):
+        C.GetEntry(i)
+        if IHWP_np[0] == 1:
+            helicity_np[0] *= -1
+        elif IHWP_np[0] == -1:
+            helicity_np[0] *= 1
+        else:
+            continue
+            
+        #____________CUTS_______________________________      
+        ycut = dymin < dy_np[0] < dymax
+        bgycut = dybgmin < dy_np[0] < dybgmax
+        coin_cut = coinmin < coin_np[0] < coinmax
+        W2cut = W2min < W2_np[0] < W2max
+        #________________________________________________     
+
+        if coin_cut and W2cut and runnum_np[0] > 2165 and not bgycut:
+            hdx_bg_data.Fill(dx_np[0], dy_np[0])
+            if helicity_np[0] == 1:
+                hdx_bg_data_plus.Fill(dx_np[0], dy_np[0])
+            if helicity_np[0] == -1:
+                hdx_bg_data_minus.Fill(dx_np[0], dy_np[0])
+
+        if coin_cut and W2cut and runnum_np[0] > 2165:
+            hdx_total_data.Fill(dx_np[0], dy_np[0])
+            if helicity_np[0] == 1:
+                hdx_data_plus.Fill(dx_np[0], dy_np[0])
+            if helicity_np[0] == -1:
+                hdx_data_minus.Fill(dx_np[0], dy_np[0])
+    
+    # Simulation loop
+    nEntries_p = B.GetEntries()
+    
+    for i in range(nEntries_p):
+        B.GetEntry(i)
+        
+        #____________CUTS_______________________________      
+        ycut = dymin < dy_p[0] < dymax
+        W2cut = W2min < W2_p[0] < W2max
+        #________________________________________________ 
+        
+        if W2cut and fnucl[0] == 1:
+            hdx_sim_p.Fill(dx_p[0], dy_p[0], weight[0])
+        if W2cut and fnucl[0] == 0:
+            hdx_sim_n.Fill(dx_p[0], dy_p[0], weight[0])
+    
+    # Fit distributions
+    cfg = f"GEN{config}"
+    print(cfg)
+    
+    dists = DistributionFits2D(bg_shape_option="gaus" if cfg == "GEN2" or cfg=="GEN3" or cfg =="GEN4" else "from data")
+    
+    bin_centers_x, bin_centers_y, bin_contents_data = Function_2DHIST2NP(hdx_total_data)
+    bin_centers_x, bin_centers_y, bin_contents_sim_p = Function_2DHIST2NP(hdx_sim_p)
+    bin_centers_x, bin_centers_y, bin_contents_sim_n = Function_2DHIST2NP(hdx_sim_n)
+    bin_centers_x, bin_centers_y, bin_contents_bg_data = Function_2DHIST2NP(hdx_bg_data)
+
+    dists.hdx_data = bin_contents_data
+    dists.hdx_sim_p = bin_contents_sim_p
+    dists.hdx_sim_n = bin_contents_sim_n
+    dists.hdx_bg_data = bin_contents_bg_data
+
+    hdx_bg_fit, hdx_total_fit, hdx_sim_p, hdx_sim_n = dists.He3_fit_dists()
+    
+    # Plot results
+    hdx_data_plot = hdx_total_data.Clone("hdx_data_plot")
+    hdx_sim_p_plot = r.TH2F("hdx_sim_p_plot", "", nbins, xmin, xmax, nbins, ymin, ymax)
+    hdx_sim_n_plot = r.TH2F("hdx_sim_n_plot", "", nbins, xmin, xmax, nbins, ymin, ymax)
+    hdx_bg_plot = r.TH2F("hdx_bg_plot", "", nbins, xmin, xmax, nbins, ymin, ymax)
+    hdx_total_fit_plot = r.TH2F("hdx_total_fit_plot", "", nbins, xmin, xmax, nbins, ymin, ymax)
+
+    for i in range(nbins):
+        for j in range(nbins):
+            hdx_bg_plot.SetBinContent(i + 1, j + 1, hdx_bg_fit[i, j])
+            hdx_total_fit_plot.SetBinContent(i + 1, j + 1, hdx_total_fit[i, j])
+            hdx_sim_p_plot.SetBinContent(i + 1, j + 1, hdx_sim_p[i, j])
+            hdx_sim_n_plot.SetBinContent(i + 1, j + 1, hdx_sim_n[i, j])
+
+    gStyle.SetOptFit(0)
+    
+    hdx_data_plot.SetTitle(f"Data/Simulation Comparison {cfg};#Deltax (m);Entries")
+    hdx_data_plot.SetMarkerStyle(r.kFullCircle)
+    hdx_total_fit_plot.SetFillColorAlpha(30, 0.5)
+    hdx_sim_p_plot.SetFillColorAlpha(r.kRed, 0.3)
+    hdx_sim_n_plot.SetFillColorAlpha(r.kBlue, 0.3)
+    hdx_bg_plot.SetFillColorAlpha(r.kMagenta, 0.3)
+    
+    hdx_total_fit_plot.SetLineStyle(7)
+    hdx_sim_p_plot.SetLineStyle(7)
+    hdx_sim_n_plot.SetLineStyle(7)
+    hdx_bg_plot.SetLineStyle(7)
+    
+    hdx_total_fit_plot.SetLineColor(30)
+    hdx_sim_p_plot.SetLineColor(r.kRed)
+    hdx_sim_n_plot.SetLineColor(r.kBlue)
+    hdx_bg_plot.SetLineColor(r.kMagenta)
+    
+    c = TCanvas("c", "", 800, 600)
+    hdx_data_plot.Draw("COLZ")
+    hdx_total_fit_plot.Draw("same COLZ")
+    hdx_sim_p_plot.Draw("same COLZ")
+    hdx_sim_n_plot.Draw("same COLZ")
+    hdx_bg_plot.Draw("same COLZ")
+    
+    legend = TLegend(0.65, 0.72, 0.89, 0.89)
+    legend.AddEntry("hdx_data_plot", "Data", "p")
+    legend.AddEntry("hdx_total_fit_plot", "MC Fit", "lf")
+    legend.AddEntry("hdx_sim_p_plot", "MC p", "lf")
+    legend.AddEntry("hdx_sim_n_plot", "MC n", "lf")
+    legend.AddEntry("hdx_bg_plot", "Background", "lf")
+    legend.SetLineColor(0)
+    legend.Draw("same")
+    
+    output = f"Data_sim_total_{cfg}.pdf"
+    # c.SaveAs(f"../plots/{output}")
+    
+    return UTILITIES.Function_2DHIST2NP(hdx_data_plot), UTILITIES.Function_2DHIST2NP(hdx_bg_plot), UTILITIES.Function_2DHIST2NP(hdx_total_fit_plot), UTILITIES.Function_2DHIST2NP(hdx_sim_p_plot), UTILITIES.Function_2DHIST2NP(hdx_sim_n_plot)
+                     
+                         
+                         
 def Function_APHYS(config,pas,rawResults,accResult,bgResult,protonResult):
     runs,A,AE,Y,he3Pol,beamPol,cut,cutVal=rawResults
     import ROOT as r
