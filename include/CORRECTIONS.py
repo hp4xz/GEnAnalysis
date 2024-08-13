@@ -1,4 +1,4 @@
-def Function_ANALYZEROOTFILE(config,hbg,hproton,htotal):
+def Function_ANALYZEROOTFILE(config,hbg,hproton,htotal,cutstyle=0):
     import ROOT as r
     import math
     import array
@@ -105,10 +105,14 @@ def Function_ANALYZEROOTFILE(config,hbg,hproton,htotal):
     
 
     imgoingcrazy=0
-    
+    rxn3 = (dxmax - dxmin) / 2.0
+    ryn3 = (dymax - dymin) / 2.0
+    x0_n3 = (dxmax + dxmin) / 2.0
+    y0_3 = (dymax + dymin) / 2.0
     for i in range(nEntries_np):
         C.GetEntry(i)
         #____________CUTS_______________________________      
+        ncut = (dx_np[0] - x0_n3)**2 / rxn3**2 + (dy_np[0] - y0_3)**2 / ryn3**2 <= 1
         ycut = dymin < dy_np[0] < dymax
         bgycut=dybgmin<dy_np[0]<dybgmax
         coin_cut = coinmin < coin_np[0] < coinmax
@@ -123,49 +127,74 @@ def Function_ANALYZEROOTFILE(config,hbg,hproton,htotal):
         else:
             continue
 
-        
-        if W2cut and ycut and xcutn:
-            hcoin.Fill(coin_np[0])
-            
-            if helicity_np[0] == 1:
-                hcoin_plus.Fill(coin_np[0])
-                imgoingcrazy+=1
-            if helicity_np[0] == -1:
-                hcoin_minus.Fill(coin_np[0])
-        if coin_cut and not W2cut and xcutn and not bgycut and runnum_np[0] > 2165:
-            hbgtot.Fill(dx_np[0])
-            if helicity_np[0] == 1:
-                hbg_plus.Fill(dx_np[0])
-            if helicity_np[0] == -1:
-                hbg_minus.Fill(dx_np[0])
-                
+        if cutstyle==0:
+            if W2cut and ycut and xcutn:
+                hcoin.Fill(coin_np[0])
+
+                if helicity_np[0] == 1:
+                    hcoin_plus.Fill(coin_np[0])
+                    imgoingcrazy+=1
+                if helicity_np[0] == -1:
+                    hcoin_minus.Fill(coin_np[0])
+            if coin_cut and not W2cut and xcutn and not bgycut and runnum_np[0] > 2165:
+                hbgtot.Fill(dx_np[0])
+                if helicity_np[0] == 1:
+                    hbg_plus.Fill(dx_np[0])
+                if helicity_np[0] == -1:
+                    hbg_minus.Fill(dx_np[0])
+        if cutstyle==1:
+            if W2cut and ncut:
+                hcoin.Fill(coin_np[0])
+
+                if helicity_np[0] == 1:
+                    hcoin_plus.Fill(coin_np[0])
+                    imgoingcrazy+=1
+                if helicity_np[0] == -1:
+                    hcoin_minus.Fill(coin_np[0])
+            if coin_cut and not W2cut and not bgycut and runnum_np[0] > 2165:
+                hbgtot.Fill(dx_np[0])
+                if helicity_np[0] == 1:
+                    hbg_plus.Fill(dx_np[0])
+                if helicity_np[0] == -1:
+                    hbg_minus.Fill(dx_np[0])
     
     
     #print(f"FROM THE SOURCE: {imgoingcrazy}")
-    
-    Aacc,AEacc,facc,faccE=Function_ACCIDENTAL(config,hcoin,hcoin_plus,hcoin_minus,coinmin,coinmax)
-    
-    
-    Abg,AEbg=Function_INELASTIC(config,hbgtot,hbg_plus,hbg_minus)
-    
-    lower_bound = dxmin
-    upper_bound = dxmax
+    if cutstyle==0:
+        Aacc,AEacc,facc,faccE=Function_ACCIDENTAL(config,hcoin,hcoin_plus,hcoin_minus,coinmin,coinmax)
 
-    bin_centers,bin_contents=hbg
-    numBG=np.sum(bin_contents[(bin_centers >= lower_bound) & (bin_centers <= upper_bound)])
 
-    bin_centers,bin_contents=hproton
-    numProton=np.sum(bin_contents[(bin_centers >= lower_bound) & (bin_centers <= upper_bound)])
+        Abg,AEbg=Function_INELASTIC(config,hbgtot,hbg_plus,hbg_minus)
 
-    bin_centers,bin_contents=htotal
-    numTotal=np.sum(bin_contents[(bin_centers >= lower_bound) & (bin_centers <= upper_bound)])
-    
-    fproton=np.round(numProton/numTotal,4)
-    fbg=np.round(numBG/numTotal,4)
-    
-    fprotonE=calculate_division_error(numProton,numTotal,np.sqrt(numProton),np.sqrt(numTotal))[1]
-    fbgE=calculate_division_error(numBG,numTotal,np.sqrt(numBG),np.sqrt(numTotal))[1]
-    
+        lower_bound = dxmin
+        upper_bound = dxmax
+
+        bin_centers,bin_contents=hbg
+        numBG=np.sum(bin_contents[(bin_centers >= lower_bound) & (bin_centers <= upper_bound)])
+
+        bin_centers,bin_contents=hproton
+        numProton=np.sum(bin_contents[(bin_centers >= lower_bound) & (bin_centers <= upper_bound)])
+
+        bin_centers,bin_contents=htotal
+        numTotal=np.sum(bin_contents[(bin_centers >= lower_bound) & (bin_centers <= upper_bound)])
+
+        fproton=np.round(numProton/numTotal,4)
+        fbg=np.round(numBG/numTotal,4)
+
+        fprotonE=calculate_division_error(numProton,numTotal,np.sqrt(numProton),np.sqrt(numTotal))[1]
+        fbgE=calculate_division_error(numBG,numTotal,np.sqrt(numBG),np.sqrt(numTotal))[1]
+    if cutstyle==1:
+        Aacc,AEacc,facc,faccE=Function_ACCIDENTAL(config,hcoin,hcoin_plus,hcoin_minus,coinmin,coinmax)
+        Abg,AEbg=Function_INELASTIC(config,hbgtot,hbg_plus,hbg_minus)
+        numBG=hbg
+        numProton=hproton
+        numTotal=htotal
+        fproton=np.round(numProton/numTotal,4)
+        fbg=np.round(numBG/numTotal,4)
+
+        fprotonE=calculate_division_error(numProton,numTotal,np.sqrt(numProton),np.sqrt(numTotal))[1]
+        fbgE=calculate_division_error(numBG,numTotal,np.sqrt(numBG),np.sqrt(numTotal))[1]
+        
     return [Aacc,AEacc,facc,faccE],[Abg,AEbg,fbg,fbgE],[fproton,fprotonE]
 
 def calculate_division_error(A, B, sigma_A, sigma_B):

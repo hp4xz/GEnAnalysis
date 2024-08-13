@@ -683,7 +683,7 @@ def Function_FITDXSENS(config,cut,value):
     return UTILITIES.Function_HIST2NP(hdx_data_plot), UTILITIES.Function_HIST2NP(hdx_bg_plot),UTILITIES.Function_HIST2NP(hdx_total_fit_plot),UTILITIES.Function_HIST2NP(hdx_sim_p_plot),UTILITIES.Function_HIST2NP(hdx_sim_n_plot)
 
 
-def Function_FITDXSENS2D((config,cut,value):
+def Function_FITDXSENS2D(config,cut,value):
     import ROOT as r
     import math
     import array
@@ -701,7 +701,7 @@ def Function_FITDXSENS2D((config,cut,value):
     import CONFIG
     import DBPARSE
     import UTILITIES
-    from SIMFITS import DistributionFits
+    from SIMFITS2D import DistributionFits2D
     from ROOT import gStyle, TChain, TH1F, TCanvas, TLegend
     W2min=CONFIG.Function_JSON("W2min",f"../config/cuts{config}.cfg")
     W2max=CONFIG.Function_JSON("W2max",f"../config/cuts{config}.cfg")
@@ -871,10 +871,10 @@ def Function_FITDXSENS2D((config,cut,value):
     
     dists = DistributionFits2D(bg_shape_option="gaus" if cfg == "GEN2" or cfg=="GEN3" or cfg =="GEN4" else "from data")
     
-    bin_centers_x, bin_centers_y, bin_contents_data = Function_2DHIST2NP(hdx_total_data)
-    bin_centers_x, bin_centers_y, bin_contents_sim_p = Function_2DHIST2NP(hdx_sim_p)
-    bin_centers_x, bin_centers_y, bin_contents_sim_n = Function_2DHIST2NP(hdx_sim_n)
-    bin_centers_x, bin_centers_y, bin_contents_bg_data = Function_2DHIST2NP(hdx_bg_data)
+    bin_centers_x, bin_centers_y, bin_contents_data = UTILITIES.Function_2DHIST2NP(hdx_total_data)
+    bin_centers_x, bin_centers_y, bin_contents_sim_p = UTILITIES.Function_2DHIST2NP(hdx_sim_p)
+    bin_centers_x, bin_centers_y, bin_contents_sim_n = UTILITIES.Function_2DHIST2NP(hdx_sim_n)
+    bin_centers_x, bin_centers_y, bin_contents_bg_data = UTILITIES.Function_2DHIST2NP(hdx_bg_data)
 
     dists.hdx_data = bin_contents_data
     dists.hdx_sim_p = bin_contents_sim_p
