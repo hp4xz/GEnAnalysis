@@ -20,6 +20,15 @@ def Function_HE3POL(file_path):
     polarization = df['Polarization'].values
     return time, polarization
 
+def Function_HE3POL_withE(file_path):
+    df = pd.read_csv(file_path)
+    df.columns = df.columns.str.strip()
+    df['Interpolated Dates'] = pd.to_datetime(df['Interpolated Dates'].str.strip())
+    time = df['Interpolated Dates'].values
+    polarization = df['Interpolated Data'].values
+    error=df['Interpolated Errors'].values
+    return time, polarization,error
+
 def Function_READRUNLIST(file_path):
     df = pd.read_csv(file_path, header=0)
     df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
@@ -47,14 +56,45 @@ def Function_RETURNHE3POL(runnum, time_file_path, pol_file_path):
         raise ValueError(f"Run number {runnum} not found in runlist.")
     start_time = run_data['Start'].values[0]
     end_time = run_data['Finish'].values[0]
-    time, polarization = Function_HE3POL(pol_file_path)
+    time, polarization,error = Function_HE3POL_withE(pol_file_path)
     mask = (time >= start_time) & (time <= end_time)
-    filtered_polarization = polarization[mask]    
+    filtered_polarization = polarization[mask]
+    filtered_polarizationE=error[mask]
     if len(filtered_polarization) == 0:
         raise ValueError(f"No polarization data found for run number {runnum} within the run duration.")
     average_polarization = filtered_polarization.mean()
+    average_error=np.sqrt(np.sum(filtered_polarizationE**2))/len(filtered_polarizationE)
     return average_polarization
-
+def Function_RETURNHE3POLWITHE(runnum, time_file_path, pol_file_path):
+    """
+    Returns the average polarization for the input run number during the duration of the run.
+    :param runnum: The run number to lookup.
+    :param time_file_path: Path to the runlist CSV file.
+    :param pol_file_path: Path to the polarization CSV file.
+    :return: Average polarization during the run.
+    """
+    import numpy as np
+    runlist_df = Function_READRUNLIST(time_file_path)
+    run_data = runlist_df[runlist_df['Run'] == runnum]
+    if run_data.empty:
+        raise ValueError(f"Run number {runnum} not found in runlist.")
+    
+    start_time = run_data['Start'].values[0]
+    end_time = run_data['Finish'].values[0]
+    time, polarization,error = Function_HE3POL_withE(pol_file_path)
+    mask = (time >= start_time) & (time <= end_time)
+    filtered_polarization = polarization[mask]
+    filtered_polarizationE=error[mask]
+    if len(filtered_polarization) == 0:
+        raise ValueError(f"No polarization data found for run number {runnum} within the run duration.")
+    average_polarization = np.mean(filtered_polarization[~np.isnan(filtered_polarization)])
+    
+    if np.isnan(average_polarization):        
+        print(filtered_polarization)
+    
+    average_error=np.sum(filtered_polarizationE)/len(filtered_polarizationE)
+   #print(average_error)
+    return average_polarization,average_error
 def Function_RETURNBEAMPOL(runnum, time_file_path, beam_pol_file_path):
     """
     Returns the average beam polarization for the input run number during the duration of the run.
@@ -82,9 +122,35 @@ def Function_RETURNBEAMPOL(runnum, time_file_path, beam_pol_file_path):
     for i in range(len(time_start)):
         if start_time >= time_start[i] and end_time <= time_end[i]:
             return polarization[i]
-    
+   
     raise ValueError(f"No beam polarization data found for run number {runnum} within the run duration.")
+def Function_RETURNBEAMPOLWITHE(runnum, time_file_path, beam_pol_file_path):
+    """
+    Returns the average beam polarization for the input run number during the duration of the run.
 
+    :param runnum: The run number to lookup.
+    :param time_file_path: Path to the runlist CSV file.
+    :param beam_pol_file_path: Path to the beam polarization CSV file.
+    :return: Beam polarization during the run.
+    """
+    # Read the runlist CSV
+    runlist_df = Function_READRUNLIST(time_file_path)
+    
+    # Get the start and end time for the given run number
+    run_data = runlist_df[runlist_df['Run'] == runnum]
+    if run_data.empty:
+        raise ValueError(f"Run number {runnum} not found in runlist.")
+    
+    start_time = run_data['Start'].values[0]
+    end_time = run_data['Finish'].values[0]
+    
+    # Read the beam polarization data
+    time_start, time_end, polarization, error = Function_READBEAM(beam_pol_file_path)
+    
+    # Find the beam polarization that covers the run time
+    for i in range(len(time_start)):
+        if start_time >= time_start[i] and end_time <= time_end[i]:
+            return polarization[i],error[i]
 
 def Function_RETURNPROCESSEDBEAMPOL(runnum):    
     import pandas as pd
