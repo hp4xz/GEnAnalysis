@@ -44,6 +44,7 @@ def Rcalc(a, b, c, aE, cE):
     
     return R,RE
 
+
 def Function_GENWORLDFROMQ2(Q2):
     import pandas as pd
     import numpy as np
