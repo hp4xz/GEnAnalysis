@@ -102,6 +102,37 @@ def Function_RETURNPROCESSEDHE3POL(runnum):
     polarization_value = data.loc[data['Run Number'] == runnum, 'Polarization'].values[0]
     return polarization_value
 
+
+
+def parse_hodotdc_file(filepath):
+    import numpy as np
+    with open(filepath, 'r') as f:
+        content = f.read()
+
+    def extract_values(keyword, count):
+        start = content.find(keyword)
+        if start == -1:
+            raise ValueError(f"Keyword {keyword} not found")
+        lines = content[start:].split('\n')
+        values = []
+        for line in lines[1:]:
+            if line.strip() == "" or "=" in line:
+                break
+            values.extend([float(val) for val in line.strip().split()])
+            if len(values) >= count:
+                break
+        return np.array(values[:count])
+
+    wmap = extract_values('timewalk0map', 180)
+    wL = wmap[:90]
+    wR = wmap[90:]
+
+    vscint = extract_values('vscint', 90)
+    tmean = extract_values('meantime', 90)
+
+    return wL, wR, vscint, tmean
+
+
     
 
     
