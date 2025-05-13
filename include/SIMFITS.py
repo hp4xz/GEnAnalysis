@@ -24,7 +24,7 @@ class DistributionFits:
     def fitbg_pol2(self, x, *par):
         import numpy as np
         from scipy.optimize import curve_fit
-        return np.polyval(par[::-1], x)
+        return np.square(np.polyval(par[::-1], x))
     def fitbg_gaus(self, x, a, mu, sigma):
         import numpy as np
         from scipy.optimize import curve_fit
