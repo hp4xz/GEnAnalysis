@@ -74,5 +74,8 @@ def compute_Px_Pz(trPx, trPy, trPz, ebeam, theta_deg, phi_deg):
     valid = valid_q & valid_n
     Px[~valid] = np.nan
     Pz[~valid] = np.nan
-
+    cos_theta_q = q_z / q_mag
+    cos_theta_q = np.clip(cos_theta_q, -1, 1)  # ensure numerical safety
+    theta_q_rad = np.arccos(cos_theta_q)
+    theta_q_deg = np.degrees(theta_q_rad)
     return Px, Pz
